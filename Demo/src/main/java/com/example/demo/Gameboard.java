@@ -2,14 +2,15 @@ package com.example.demo;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 public class Gameboard extends Application {
-    // 🔹 Grid constants
+
     private static final int ROWS = 10;
     private static final int COLS = 10;
     private static final int SCENE_WIDTH = 800;
@@ -19,16 +20,23 @@ public class Gameboard extends Application {
         GRASS, PLAYER, PRINCESS, BOMB, WALL
     }
 
-    // 🔹 Use "matrix" instead of "map"
     private CellType[][] matrix = new CellType[ROWS][COLS];
+
+    // 🔹 Preload images once
+    private Image grassImg;
+    private Image playerImg;
+    private Image princessImg;
+    private Image bombImg;
+    private Image wallImg;
 
     @Override
     public void start(Stage stage) {
 
+        loadImages();
         initMatrix();
 
         GridPane grid = new GridPane();
-        grid.setPrefSize(SCENE_WIDTH, SCENE_HEIGHT); // fills full area
+        grid.setPrefSize(SCENE_WIDTH, SCENE_HEIGHT);
 
         drawBoard(grid);
 
@@ -42,6 +50,14 @@ public class Gameboard extends Application {
         stage.show();
     }
 
+    private void loadImages() {
+        grassImg    = new Image(getClass().getResourceAsStream("/images/grass.png"));
+        playerImg   = new Image(getClass().getResourceAsStream("/images/player.png"));
+        princessImg = new Image(getClass().getResourceAsStream("/images/princess.png"));
+        bombImg     = new Image(getClass().getResourceAsStream("/images/bomb.png"));
+        wallImg     = new Image(getClass().getResourceAsStream("/images/wall.png"));
+    }
+
     private void initMatrix() {
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
@@ -49,7 +65,6 @@ public class Gameboard extends Application {
             }
         }
 
-        // Sample objects
         matrix[0][0] = CellType.PLAYER;
         matrix[9][9] = CellType.PRINCESS;
         matrix[4][5] = CellType.BOMB;
@@ -60,35 +75,47 @@ public class Gameboard extends Application {
     private void drawBoard(GridPane grid) {
         grid.getChildren().clear();
 
-        double cellWidth = SCENE_WIDTH / (double) COLS;   // 80px per cell
-        double cellHeight = SCENE_HEIGHT / (double) ROWS; // 80px per cell
+        double cellWidth  = SCENE_WIDTH  / (double) COLS;
+        double cellHeight = SCENE_HEIGHT / (double) ROWS;
 
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
 
                 StackPane cell = new StackPane();
-                cell.setPrefSize(cellWidth, cellHeight); // fills grid
+                cell.setPrefSize(cellWidth, cellHeight);
 
-                Label label = new Label();
+                // 🔹 Always add grass as background layer
+                ImageView grassView = new ImageView(grassImg);
+                grassView.setFitWidth(cellWidth);
+                grassView.setFitHeight(cellHeight);
+                cell.getChildren().add(grassView);
 
-                if (matrix[row][col] == CellType.PLAYER) {
-                    label.setText("🧍");
-                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                // 🔹 Add character/object on top if needed
+                if (matrix[row][col] == CellType.WALL) {
+                    ImageView wallView = new ImageView(wallImg);
+                    wallView.setFitWidth(cellWidth);
+                    wallView.setFitHeight(cellHeight);
+                    cell.getChildren().add(wallView);
+
+                } else if (matrix[row][col] == CellType.PLAYER) {
+                    ImageView playerView = new ImageView(playerImg);
+                    playerView.setFitWidth(cellWidth);
+                    playerView.setFitHeight(cellHeight);
+                    cell.getChildren().add(playerView);
+
                 } else if (matrix[row][col] == CellType.PRINCESS) {
-                    label.setText("👸");
-                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                    ImageView princessView = new ImageView(princessImg);
+                    princessView.setFitWidth(cellWidth);
+                    princessView.setFitHeight(cellHeight);
+                    cell.getChildren().add(princessView);
+
                 } else if (matrix[row][col] == CellType.BOMB) {
-                    label.setText("💣");
-                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
-                } else if (matrix[row][col] == CellType.WALL) {
-                    label.setText("");
-                    cell.setStyle("-fx-border-color: black; -fx-background-color: gray;");
-                } else {
-                    label.setText("");
-                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                    ImageView bombView = new ImageView(bombImg);
+                    bombView.setFitWidth(cellWidth);
+                    bombView.setFitHeight(cellHeight);
+                    cell.getChildren().add(bombView);
                 }
 
-                cell.getChildren().add(label);
                 grid.add(cell, col, row);
             }
         }
