@@ -1,4 +1,4 @@
-package com.champlain.soft.game;
+package com.example.demo;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -12,6 +12,8 @@ public class Gameboard extends Application {
     // 🔹 Grid constants
     private static final int ROWS = 10;
     private static final int COLS = 10;
+    private static final int SCENE_WIDTH = 800;
+    private static final int SCENE_HEIGHT = 800;
 
     enum CellType {
         GRASS, PLAYER, PRINCESS, BOMB, WALL
@@ -26,12 +28,14 @@ public class Gameboard extends Application {
         initMatrix();
 
         GridPane grid = new GridPane();
+        grid.setPrefSize(SCENE_WIDTH, SCENE_HEIGHT); // fills full area
+
         drawBoard(grid);
 
         BorderPane root = new BorderPane();
         root.setCenter(grid);
 
-        Scene scene = new Scene(root, 400,700);
+        Scene scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
 
         stage.setTitle("Rescue the Princess");
         stage.setScene(scene);
@@ -56,26 +60,32 @@ public class Gameboard extends Application {
     private void drawBoard(GridPane grid) {
         grid.getChildren().clear();
 
+        double cellWidth = SCENE_WIDTH / (double) COLS;   // 80px per cell
+        double cellHeight = SCENE_HEIGHT / (double) ROWS; // 80px per cell
+
         for (int row = 0; row < ROWS; row++) {
             for (int col = 0; col < COLS; col++) {
 
                 StackPane cell = new StackPane();
-                cell.setPrefSize(20, 20);
-                cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                cell.setPrefSize(cellWidth, cellHeight); // fills grid
 
                 Label label = new Label();
 
-                if(matrix[row][col] == CellType.PLAYER ) {
+                if (matrix[row][col] == CellType.PLAYER) {
                     label.setText("🧍");
-                }else if(matrix[row][col] == CellType.PRINCESS ) {
+                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                } else if (matrix[row][col] == CellType.PRINCESS) {
                     label.setText("👸");
-                }else if(matrix[row][col] == CellType.BOMB){
+                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                } else if (matrix[row][col] == CellType.BOMB) {
                     label.setText("💣");
-                }else if(matrix[row][col] == CellType.WALL){
+                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
+                } else if (matrix[row][col] == CellType.WALL) {
                     label.setText("");
                     cell.setStyle("-fx-border-color: black; -fx-background-color: gray;");
-                }else{
+                } else {
                     label.setText("");
+                    cell.setStyle("-fx-border-color: black; -fx-background-color: beige;");
                 }
 
                 cell.getChildren().add(label);
@@ -84,5 +94,7 @@ public class Gameboard extends Application {
         }
     }
 
-
+    public static void main(String[] args) {
+        launch(args);
+    }
 }
