@@ -8,6 +8,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.control.Label;
 import javafx.stage.Stage;
 
 import java.util.Random;
@@ -19,6 +20,7 @@ public class Gameboard extends Application {
     private static final int SCENE_WIDTH = 800;
     private static final int SCENE_HEIGHT = 800;
     private static final int NUM_BOMBS = 5;
+    private static final int MAX_LIVES = 3;
 
     enum CellType {
         GRASS, PLAYER, PRINCESS, BOMB, WALL
@@ -26,9 +28,12 @@ public class Gameboard extends Application {
 
     private CellType[][] matrix = new CellType[ROWS][COLS];
 
-    // 🔹 Track player position
     private int playerRow = 1;
     private int playerCol = 1;
+    private int lives = MAX_LIVES;
+
+    // 🔹 Only reveal bombs when lives = 0
+    private boolean showBombs = false;
 
     private Image grassImg;
     private Image playerImg;
@@ -37,6 +42,7 @@ public class Gameboard extends Application {
     private Image wallImg;
 
     private GridPane grid;
+    private Label livesLabel;
 
     @Override
     public void start(Stage stage) {
@@ -48,12 +54,16 @@ public class Gameboard extends Application {
         grid.setPrefSize(SCENE_WIDTH, SCENE_HEIGHT);
         drawBoard();
 
+        // 🔹 Lives display at the top
+        livesLabel = new Label(getLivesText());
+        livesLabel.setStyle("-fx-font-size: 24px; -fx-padding: 5px 10px;");
+
         BorderPane root = new BorderPane();
+        root.setTop(livesLabel);
         root.setCenter(grid);
 
-        Scene scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT);
+        Scene scene = new Scene(root, SCENE_WIDTH, SCENE_HEIGHT + 40);
 
-        // 🔹 Keyboard input
         scene.setOnKeyPressed(event -> {
             int newRow = playerRow;
             int newCol = playerCol;
@@ -82,25 +92,44 @@ public class Gameboard extends Application {
             return;
         }
 
-        // 🔹 Hit a bomb - game over
+        // 🔹 Hit a bomb
         if (target == CellType.BOMB) {
-            matrix[newRow][newCol] = CellType.PLAYER;
+            lives--;
+            livesLabel.setText(getLivesText());
+
+            // Move player onto bomb cell
             matrix[playerRow][playerCol] = CellType.GRASS;
             playerRow = newRow;
             playerCol = newCol;
-            drawBoard();
-            showAlert("💥 Game Over!", "You hit a bomb! Better luck next time.", stage);
+            matrix[playerRow][playerCol] = CellType.PLAYER;
+
+            if (lives <= 0) {
+                // 🔹 Reveal all bombs on last life
+                showBombs = true;
+                drawBoard();
+                showAlert("💥 Game Over!", "You ran out of lives! Bombs revealed.", stage);
+            } else {
+                drawBoard();
+                showAlert("💣 Ouch!", "You hit a bomb! Lives remaining: " + lives, stage);
+
+                // 🔹 Reset player to [1][1] after losing a life
+                matrix[playerRow][playerCol] = CellType.GRASS;
+                playerRow = 1;
+                playerCol = 1;
+                matrix[playerRow][playerCol] = CellType.PLAYER;
+                drawBoard();
+            }
             return;
         }
 
         // 🔹 Reached princess - you win
         if (target == CellType.PRINCESS) {
-            matrix[newRow][newCol] = CellType.PLAYER;
             matrix[playerRow][playerCol] = CellType.GRASS;
             playerRow = newRow;
             playerCol = newCol;
+            matrix[playerRow][playerCol] = CellType.PLAYER;
             drawBoard();
-            showAlert("👑 You Win!", "You rescued the princess!", stage);
+            showAlert("👑 You Win!", "You rescued the princess with " + lives + " lives left!", stage);
             return;
         }
 
@@ -112,6 +141,11 @@ public class Gameboard extends Application {
         drawBoard();
     }
 
+    private String getLivesText() {
+        String hearts = "❤️".repeat(lives) + "🖤".repeat(MAX_LIVES - lives);
+        return "  Lives: " + hearts;
+    }
+
     private void showAlert(String title, String message, Stage stage) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);
@@ -120,24 +154,29 @@ public class Gameboard extends Application {
         alert.initOwner(stage);
         alert.showAndWait();
 
-        // 🔹 Ask to play again after alert is closed
-        Alert replay = new Alert(Alert.AlertType.CONFIRMATION);
-        replay.setTitle("Play Again?");
-        replay.setHeaderText(null);
-        replay.setContentText("Would you like to play again?");
-        replay.initOwner(stage);
-        replay.showAndWait().ifPresent(response -> {
-            if (response.getText().equals("OK")) {
-                resetGame();
-            } else {
-                stage.close();
-            }
-        });
+        // Only ask to replay on game over or win
+        if (title.contains("Game Over") || title.contains("Win")) {
+            Alert replay = new Alert(Alert.AlertType.CONFIRMATION);
+            replay.setTitle("Play Again?");
+            replay.setHeaderText(null);
+            replay.setContentText("Would you like to play again?");
+            replay.initOwner(stage);
+            replay.showAndWait().ifPresent(response -> {
+                if (response.getText().equals("OK")) {
+                    resetGame();
+                } else {
+                    stage.close();
+                }
+            });
+        }
     }
 
     private void resetGame() {
         playerRow = 1;
         playerCol = 1;
+        lives = MAX_LIVES;
+        showBombs = false;
+        livesLabel.setText(getLivesText());
         initMatrix();
         drawBoard();
     }
@@ -151,14 +190,12 @@ public class Gameboard extends Application {
     }
 
     private void initMatrix() {
-        // Step 1 - Fill everything with grass
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
                 matrix[r][c] = CellType.GRASS;
             }
         }
 
-        // Step 2 - Walls on perimeter
         for (int r = 0; r < ROWS; r++) {
             for (int c = 0; c < COLS; c++) {
                 if (r == 0 || r == ROWS - 1 || c == 0 || c == COLS - 1) {
@@ -167,13 +204,9 @@ public class Gameboard extends Application {
             }
         }
 
-        // Step 3 - Player at [1][1]
         matrix[1][1] = CellType.PLAYER;
-
-        // Step 4 - Princess randomly placed
         placeRandom(CellType.PRINCESS);
 
-        // Step 5 - Bombs randomly placed
         for (int i = 0; i < NUM_BOMBS; i++) {
             placeRandom(CellType.BOMB);
         }
@@ -201,13 +234,11 @@ public class Gameboard extends Application {
                 StackPane cell = new StackPane();
                 cell.setPrefSize(cellWidth, cellHeight);
 
-                // Grass always as background
                 ImageView grassView = new ImageView(grassImg);
                 grassView.setFitWidth(cellWidth);
                 grassView.setFitHeight(cellHeight);
                 cell.getChildren().add(grassView);
 
-                // Object on top
                 if (matrix[row][col] == CellType.WALL) {
                     ImageView iv = new ImageView(wallImg);
                     iv.setFitWidth(cellWidth);
@@ -227,10 +258,14 @@ public class Gameboard extends Application {
                     cell.getChildren().add(iv);
 
                 } else if (matrix[row][col] == CellType.BOMB) {
-                    ImageView iv = new ImageView(bombImg);
-                    iv.setFitWidth(cellWidth);
-                    iv.setFitHeight(cellHeight);
-                    cell.getChildren().add(iv);
+                    // 🔹 Only show bomb image if showBombs is true
+                    if (showBombs) {
+                        ImageView iv = new ImageView(bombImg);
+                        iv.setFitWidth(cellWidth);
+                        iv.setFitHeight(cellHeight);
+                        cell.getChildren().add(iv);
+                    }
+                    // Otherwise it just shows grass — bomb is hidden
                 }
 
                 grid.add(cell, col, row);
